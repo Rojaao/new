@@ -1,30 +1,28 @@
-import websocket
-import threading
-import json
 
-def iniciar_conexao(token, estrategia, stake, martingale, fator_marti, stop_gain, stop_loss, delay):
-    def on_message(ws, message):
-        print("📩 Mensagem recebida:", message)
+import websocket, json, threading
 
+def iniciar_conexao(token, stake, stop_gain, stop_loss, martingale, fator_martingale, estrategia, log_area):
     def on_open(ws):
-        print("🔌 Conectado!")
-        auth_msg = json.dumps({ "authorize": token })
-        ws.send(auth_msg)
+        ws.send(json.dumps({"authorize": token}))
+
+    def on_message(ws, message):
+        data = json.loads(message)
+        if "msg_type" in data and data["msg_type"] == "authorize":
+            log_area.markdown("✅ Conectado à Deriv!")
+            estrategia(ws, stake, stop_gain, stop_loss, martingale, fator_martingale, log_area)
+        elif "error" in data:
+            log_area.markdown(f"❌ Erro: {data['error']['message']}")
 
     def on_error(ws, error):
-        print("❌ Erro:", error)
+        log_area.markdown(f"❌ Erro na conexão: {error}")
 
-    def on_close(ws, close_status_code, close_msg):
-        print("🔌 Conexão encerrada.")
+    def on_close(ws, a, b):
+        log_area.markdown("🔌 Conexão encerrada.")
 
-    ws = websocket.WebSocketApp(
-        "wss://ws.derivws.com/websockets/v3",
-        on_open=on_open,
-        on_message=on_message,
-        on_error=on_error,
-        on_close=on_close
-    )
+    ws = websocket.WebSocketApp("wss://ws.binaryws.com/websockets/v3?app_id=1089",
+                                on_open=on_open,
+                                on_message=on_message,
+                                on_error=on_error,
+                                on_close=on_close)
 
-    thread = threading.Thread(target=ws.run_forever)
-    thread.daemon = True
-    thread.start()
+    threading.Thread(target=ws.run_forever).start()

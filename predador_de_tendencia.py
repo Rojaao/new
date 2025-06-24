@@ -1,0 +1,1 @@
+# lógica da estratégia predador
